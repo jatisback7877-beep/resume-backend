@@ -11,6 +11,16 @@ CORS(app)
 MISTRAL_API_KEY = os.environ.get('MISTRAL_API_KEY', 'pB8Te7q8wrBt1qEBGBTgTMDFhEQQOkQC')
 MISTRAL_URL = 'https://api.mistral.ai/v1/chat/completions'
 
+# ---------- HEALTH CHECK ENDPOINT (ADDED) ----------
+@app.route('/health', methods=['GET'])
+def health():
+    return jsonify({"status": "ok", "message": "Backend is running"}), 200
+
+@app.route('/', methods=['GET'])
+def home():
+    return jsonify({"status": "alive", "endpoints": ["/analyze", "/generate-resume", "/health"]}), 200
+
+# ---------- ORIGINAL ENDPOINTS ----------
 @app.route('/analyze', methods=['POST'])
 def analyze():
     try:
@@ -97,7 +107,6 @@ def generate():
             achievements = data.get('achievements', '')
             extraSkills = data.get('extraSkills', '')
             location = data.get('location', '')
-            # Merge extra skills
             if extraSkills:
                 skills = skills + ', ' + extraSkills if skills else extraSkills
             
@@ -198,14 +207,12 @@ Return plain text with clear section headings (e.g., 'Executive Summary', 'Core 
         
         if resp.status_code != 200:
             print(f"Mistral error: {resp.text}")
-            # Fallback: simple template
             fallback = f"{name}\n{role}\n\nContact: {email} | {phone}\n\nProfessional Summary: Results-driven {role} with {experience} of experience.\n\nSkills:\n{skills.replace(',', '\n- ')}\n\nWork Experience:\n• {role} at {company if company else 'Tech Company'} | {experience}\n  - Improved efficiency by 25%.\n\nEducation:\n{degree}\n"
             return jsonify({"resume": fallback}), 200
             
         result = resp.json()
         resume_text = result['choices'][0]['message']['content']
         
-        # If the response contains academic keywords, fallback
         academic_keywords = ['covid-19', 'pandemic', 'systematic review', 'digital health', 'abstract', 'introduction', 'methodology', 'conclusion']
         if any(kw in resume_text.lower() for kw in academic_keywords):
             print("Detected academic content, using fallback.")
