@@ -125,6 +125,7 @@ Resume:
 def generate_resume():
     try:
         data = request.get_json()
+        print(data)
         
         template = data.get('template', 'modern')
         name = data.get('name', 'Your Name')
